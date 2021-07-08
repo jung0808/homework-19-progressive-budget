@@ -6,7 +6,7 @@ const indexedDB =
   window.shimIndexedDB;
 
 let db;
-const request = indexedDB.open("budget", 1);
+var request = indexedDB.open("budget", 1);
 
 request.onupgradeneeded = ({ target }) => {
   let db = target.result;
@@ -16,7 +16,7 @@ request.onupgradeneeded = ({ target }) => {
 request.onsuccess = ({ target }) => {
   db = target.result;
 
-  // This checks if app is online before reading from the database
+  // check if app is online before
   if (navigator.onLine) {
     checkDatabase();
   }
@@ -37,29 +37,29 @@ function checkDatabase() {
   const transaction = db.transaction(["pending"], "readwrite");
   const store = transaction.objectStore("pending");
   const getAll = store.getAll();
-}
 
-getAll.onsuccess = function () {
-  if (getAll.result.length > 0) {
-    fetch("/api/transaction/bulk", {
-      method: "POST",
-      body: JSON.stringify(getAll.result),
-      headers: {
-        Accept: "application/json, text/plain, */*",
-        "Content-Type": "application/json",
-      },
-    })
-      .then((response) => {
-        return response.json();
+  getAll.onsuccess = function () {
+    if (getAll.result.length > 0) {
+      fetch("/api/transaction/bulk", {
+        method: "POST",
+        body: JSON.stringify(getAll.result),
+        headers: {
+          Accept: "application/json, text/plain, */*",
+          "Content-Type": "application/json",
+        },
       })
-      .then(() => {
-        //Delete records if successful
-        const transaction = db.transaction(["pending"], "readwrite");
-        const store = transaction.objectStore("pending");
-        store.clear();
-      });
-  }
-};
+        .then((response) => {
+          return response.json();
+        })
+        .then(() => {
+          // delete records if success
+          const transaction = db.transaction(["pending"], "readwrite");
+          const store = transaction.objectStore("pending");
+          store.clear();
+        });
+    }
+  };
+}
 
 // listen for app
 window.addEventListener("online", checkDatabase);
