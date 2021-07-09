@@ -1,35 +1,65 @@
-const router = require("express").Router();
-const Transaction = require("../models/transaction.js");
+const FILES_TO_CACHE = ["/", "/index.html", "index.js", "/db.js", "/style.css"];
 
-router.post("/api/transaction", ({ body }, res) => {
-  Transaction.create(body)
-    .then((dbTransaction) => {
-      res.json(dbTransaction);
+const CACHE_NAME = "static-cache-v2";
+const DATA_CACHE_NAME = "data-cache-v1";
+
+// install
+self.addEventListener("install", function (evt) {
+  evt.waitUntil(
+    caches.open(CACHE_NAME).then((cache) => {
+      console.log("Your files were pre-cached successfully!");
+      return cache.addAll(FILES_TO_CACHE);
     })
-    .catch((err) => {
-      res.status(400).json(err);
-    });
+  );
+
+  self.skipWaiting();
 });
 
-router.post("/api/transaction/bulk", ({ body }, res) => {
-  Transaction.insertMany(body)
-    .then((dbTransaction) => {
-      res.json(dbTransaction);
+// activate
+self.addEventListener("activate", function (evt) {
+  evt.waitUntil(
+    caches.keys().then((keyList) => {
+      return Promise.all(
+        keyList.map((key) => {
+          if (key !== CACHE_NAME && key !== DATA_CACHE_NAME) {
+            console.log("Removing old cache data", key);
+            return caches.delete(key);
+          }
+        })
+      );
     })
-    .catch((err) => {
-      res.status(400).json(err);
-    });
+  );
+
+  self.clients.claim();
 });
 
-router.get("/api/transaction", (req, res) => {
-  Transaction.find({})
-    .sort({ date: -1 })
-    .then((dbTransaction) => {
-      res.json(dbTransaction);
-    })
-    .catch((err) => {
-      res.status(400).json(err);
-    });
-});
+// fetch
+self.addEventListener("fetch", (evt) => {
+  if (evt.request.url.includes("/api/")) {
+    console.log("[Service Worker] Fetch(data)", evt.request.url);
 
-module.exports = router;
+    evt.respondWith(
+      caches.open(DATA_CACHE_NAME).then((cache) => {
+        return fetch(evt.request)
+          .then((response) => {
+            if (response.status === 200) {
+              cache.put(evt.request.url, response.clone());
+            }
+            return response;
+          })
+          .catch((err) => {
+            return cache.match(evt.request);
+          });
+      })
+    );
+    return;
+  }
+
+  evt.respondWith(
+    caches.open(CACHE_NAME).then((cache) => {
+      return cache.match(evt.request).then((response) => {
+        return response || fetch(evt.request);
+      });
+    })
+  );
+});
