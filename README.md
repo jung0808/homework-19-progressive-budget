@@ -34,8 +34,8 @@ Need to contact [jung0808?](https://github.com/jung0808) <br>
 
 # Screenshot of Project
 
-![Screenshot](./Progressive-Budget-1.PNG)
-![Screenshot](./Progressive-Budget-2.PNG)
+![Screenshot](Progressive-Budget-1.png)
+![Screenshot](Progressive-Budget-2.png)
 
 ## <br> Attached is also a personal link to my homework assignment #18.
 
